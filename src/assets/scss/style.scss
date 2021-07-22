@@ -1,0 +1,10 @@
+.lightSelect{
+
+  &__list{
+    display: none;
+
+    &--visible{
+      display: block;
+    }
+  }
+}

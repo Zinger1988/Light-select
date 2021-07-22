@@ -46,6 +46,8 @@ document.addEventListener("DOMContentLoaded", function () {
             renderedElement.addEventListener('click', (e) => e.stopPropagation());
         }
 
+        static append(){}
+
         constructor({selector, isSearch = false}) {
             this.element = null;
             this.renderedElement = null;
@@ -186,9 +188,9 @@ document.addEventListener("DOMContentLoaded", function () {
         isSearch: true,
     });
 
-    // elems.onSearchInput(function () {
-    //     console.log('custom search');
-    // })
+    elems.onSearchInput(function () {
+        console.log('custom search');
+    })
 });
 
 

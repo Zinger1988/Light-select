@@ -1,10 +1,116 @@
-.lightSelect{
+html,
+body{
+  font-family: Arial, sans-serif;
+}
 
-  &__list{
+.lightSelect{
+  display: inline-flex;
+  position: relative;
+  width: 100%;
+
+  *,
+  *::before,
+  *::after{
+    box-sizing: border-box;
+  }
+
+  $this: &;
+
+  &__title{
+    width: 100%;
+    display: flex;
+    padding: 10px 15px;
+    border-radius: 3px;
+    border: 1px solid rgba(#000,.5);
+    cursor: pointer;
+
+    &--active{
+      border-radius: 3px 3px 0 0;
+
+      #{$this}__arrow-item{
+        transform: translateY(-50%) rotate(180deg);
+      }
+    }
+  }
+
+  &__title-text{
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 14px;
+    line-height: 18px;
+  }
+
+  &__arrow{
+    width: 20px;
+    flex-shrink: 0;
+    margin-left: 10px;
+    position: relative;
+  }
+
+  &__arrow-item{
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    border: 6px solid transparent;
+    border-top: 6px solid #000;
+    border-bottom: 0 solid transparent;
+    transform: translateY(-50%);
+    transition: transform ease .3s;
+  }
+
+  &__dropdown{
     display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid rgba(#000,.5);
+    border-top: none;
+    padding: 10px 0;
+    border-radius: 0 0 3px 3px;
+    z-index: 100;
 
     &--visible{
       display: block;
+    }
+  }
+
+  &__search-panel{
+    padding: 0 15px 10px;
+    border-bottom: 1px dotted rgba(#000, .5);
+  }
+
+  &__search-control{
+    display: block;
+    width: 100%;
+    border: 1px solid rgba(#000, .5);
+    font-size: 14px;
+    line-height: 18px;
+    padding: 6px 10px;
+    border-radius: 2px;
+    outline: none;
+
+    &:focus{
+      border: 1px solid #1d9dff;
+    }
+  }
+  
+  &__list-item{
+    cursor: pointer;
+    padding: 6px 15px;
+    font-size: 14px;
+    line-height: 18px;
+
+    &--selected{
+      background-color: rgba(#1d9dff, .1);
+    }
+
+    &:hover{
+      background-color: #1d9dff;
+      color: #fff;
     }
   }
 }

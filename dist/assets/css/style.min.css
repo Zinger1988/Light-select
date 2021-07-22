@@ -1,1 +1,115 @@
-.lightSelect__list{display:none}.lightSelect__list--visible{display:block}
+html,
+body {
+  font-family: Arial, sans-serif;
+}
+
+.lightSelect {
+  display: inline-flex;
+  position: relative;
+  width: 100%;
+}
+
+.lightSelect *,
+.lightSelect *::before,
+.lightSelect *::after {
+  box-sizing: border-box;
+}
+
+.lightSelect__title {
+  width: 100%;
+  display: flex;
+  padding: 10px 15px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+.lightSelect__title--active {
+  border-radius: 3px 3px 0 0;
+}
+
+.lightSelect__title--active .lightSelect__arrow-item {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.lightSelect__title-text {
+  flex-grow: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  line-height: 18px;
+}
+
+.lightSelect__arrow {
+  width: 20px;
+  flex-shrink: 0;
+  margin-left: 10px;
+  position: relative;
+}
+
+.lightSelect__arrow-item {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border: 6px solid transparent;
+  border-top: 6px solid #000;
+  border-bottom: 0 solid transparent;
+  transform: translateY(-50%);
+  transition: transform ease .3s;
+}
+
+.lightSelect__dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  border-top: none;
+  padding: 10px 0;
+  border-radius: 0 0 3px 3px;
+  z-index: 100;
+}
+
+.lightSelect__dropdown--visible {
+  display: block;
+}
+
+.lightSelect__search-panel {
+  padding: 0 15px 10px;
+  border-bottom: 1px dotted rgba(0, 0, 0, 0.5);
+}
+
+.lightSelect__search-control {
+  display: block;
+  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  font-size: 14px;
+  line-height: 18px;
+  padding: 6px 10px;
+  border-radius: 2px;
+  outline: none;
+}
+
+.lightSelect__search-control:focus {
+  border: 1px solid #1d9dff;
+}
+
+.lightSelect__list-item {
+  cursor: pointer;
+  padding: 6px 15px;
+  font-size: 14px;
+  line-height: 18px;
+}
+
+.lightSelect__list-item--selected {
+  background-color: rgba(29, 157, 255, 0.1);
+}
+
+.lightSelect__list-item:hover {
+  background-color: #1d9dff;
+  color: #fff;
+}
+/*# sourceMappingURL=style.min.css.map */

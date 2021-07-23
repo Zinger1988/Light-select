@@ -287,7 +287,7 @@ function throttleLimiter(callback, timeout){
 
 document.addEventListener("DOMContentLoaded", function () {
 
-    initLightSelect('.light-select');
+    // initLightSelect('.light-select');
     initLightSelect('.light-select-search', {
         isSearch: true,
     });

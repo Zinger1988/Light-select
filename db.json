@@ -1,0 +1,44 @@
+{
+  "cities": [
+    {
+      "text": "City1",
+      "value": "City1"
+    },
+    {
+      "text": "City2",
+      "value": "City2"
+    },
+    {
+      "text": "City3",
+      "value": "City3"
+    },
+    {
+      "text": "City4",
+      "value": "City4"
+    },
+    {
+      "text": "City1",
+      "value": "City1"
+    },
+    {
+      "text": "City2",
+      "value": "City2"
+    },
+    {
+      "text": "City3",
+      "value": "City3"
+    },
+    {
+      "text": "City4",
+      "value": "City4"
+    },
+    {
+      "text": "City1",
+      "value": "City1"
+    },
+    {
+      "text": "City2",
+      "value": "City2"
+    }
+  ]
+}

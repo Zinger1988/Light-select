@@ -28,6 +28,7 @@
     "gulp-sass": "^4.1.0",
     "gulp-sourcemaps": "^3.0.0",
     "gulp-uglify-es": "^2.0.0",
+    "json-server": "^0.16.3",
     "webpack": "^5.22.0",
     "webpack-stream": "^6.1.2"
   },

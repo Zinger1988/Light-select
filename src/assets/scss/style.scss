@@ -82,6 +82,8 @@ body{
   &__search-panel{
     padding: 0 15px 10px;
     border-bottom: 1px dotted rgba(#000, .5);
+    position: relative;
+    z-index: 6;
   }
 
   &__search-control{
@@ -96,6 +98,28 @@ body{
 
     &:focus{
       border: 1px solid #1d9dff;
+    }
+  }
+
+  &__list{
+    position: relative;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+
+  &__preloader{
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    z-index: 5;
+    align-items: center;
+    justify-content: center;
+
+    &--active{
+      display: flex;
     }
   }
   
@@ -115,3 +139,42 @@ body{
     }
   }
 }
+
+@keyframes ldio-xalf9ctbgyn {
+  0% { transform: translate(-50%,-50%) rotate(0deg); }
+  100% { transform: translate(-50%,-50%) rotate(360deg); }
+}
+
+.ldio-xalf9ctbgyn div {
+  position: absolute;
+  width: 32.339999999999996px;
+  height: 32.339999999999996px;
+  border: 2.94px solid #4f7abe;
+  border-top-color: transparent;
+  border-radius: 50%;
+}
+
+.ldio-xalf9ctbgyn div {
+  animation: ldio-xalf9ctbgyn 1s linear infinite;
+  top: 73.5px;
+  left: 73.5px
+}
+
+.loadingio-spinner-rolling-qeyqj7cntg {
+  width: 147px;
+  height: 147px;
+  display: inline-block;
+  overflow: hidden;
+  background: none;
+}
+
+.ldio-xalf9ctbgyn {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform: translateZ(0) scale(1);
+  backface-visibility: hidden;
+  transform-origin: 0 0; /* see note above */
+}
+
+.ldio-xalf9ctbgyn div { box-sizing: content-box; }

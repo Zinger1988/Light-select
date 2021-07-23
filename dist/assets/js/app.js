@@ -1,5 +1,13 @@
 class LightSelect{
 
+    constructor({element, isSearch = false}) {
+        this.element = element;
+        this.renderedElement = null;
+        this.isSearch = isSearch;
+        this.isOpened = false;
+        LightSelect.init(this);
+    }
+
     static setHandlers(instance){
 
         const {renderedElement, element} = instance;
@@ -30,13 +38,15 @@ class LightSelect{
 
         // method which will be handle search input event by callback
         if(instance.isSearch){
-            instance.onSearchInput = function(callback) {
-                if(typeof callback === 'function'){
-                    const searchElem = renderedElement.querySelector('.lightSelect__search-control');
-                    searchElem.addEventListener('input', callback);
+            const searchElem = renderedElement.querySelector('.lightSelect__search-control');
+
+            if(!instance.searchHandler || typeof instance.searchHandler !== 'function'){
+                instance.searchHandler = function () {
+                    console.log('search')
                 }
-                // here can be search input callback bu default if callback was not provided
             }
+
+            searchElem.addEventListener('input', instance.searchHandler);
         }
 
         // closing a dropdown if click event detected elsewhere but not on lightSelect DOM-elements
@@ -47,14 +57,6 @@ class LightSelect{
                 LightSelect.hide(instance);
             }
         });
-    }
-
-    constructor({element, isSearch = false}) {
-        this.element = element;
-        this.renderedElement = {};
-        this.isSearch = isSearch;
-        this.isOpened = false;
-        LightSelect.init(this);
     }
 
     static init(instance){
@@ -89,7 +91,16 @@ class LightSelect{
                     </div>
                 </div>
                 <div class="lightSelect__dropdown">
-                    <div class="lightSelect__list"></div>
+                    <div class="lightSelect__dropdown-inner">
+                        <div class="lightSelect__preloader">
+                            <div class="loadingio-spinner-rolling-qeyqj7cntg">
+                                <div class="ldio-xalf9ctbgyn">
+                                    <div></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lightSelect__list"></div>
+                    </div>
                 </div>
             `;
 
@@ -97,7 +108,7 @@ class LightSelect{
         // const optionsCollection = this.element.querySelectorAll('option');
 
         // getting dropdown element and list element from main wrapper which was created above
-        const dropdownEl = wrapperEl.querySelector('.lightSelect__dropdown');
+        const dropdownEl = wrapperEl.querySelector('.lightSelect__dropdown-inner');
         const optionsListEl = dropdownEl.querySelector('.lightSelect__list');
 
         // appending option elements values to list items
@@ -112,6 +123,8 @@ class LightSelect{
 
         // appending search panel into dropdown element
         if(isSearch){
+            wrapperEl.classList.add('lightSelect__search');
+
             const searchPanel = document.createElement('div');
             searchPanel.classList.add('lightSelect__search-panel');
             searchPanel.innerHTML = `<input class="lightSelect__search-control" type="text" placeholder="Поиск">`;
@@ -170,6 +183,7 @@ class LightSelect{
     static replaceItems(instance, itemsArr, activeIndex){
         LightSelect.deleteItems(instance);
         LightSelect.appendItems(instance, itemsArr, activeIndex);
+        console.log(1)
     }
 
     static deleteItems({element, renderedElement}){
@@ -206,6 +220,27 @@ class LightSelect{
         renderedElement.remove();
         delete element.LightSelect;
     }
+
+    static onSearchInput(instance, callback){
+        const {renderedElement} = instance;
+        const searchElem = renderedElement.querySelector('.lightSelect__search-control');
+
+        searchElem.removeEventListener('input', instance.searchHandler);
+        instance.searchHandler = callback;
+        searchElem.addEventListener('input', instance.searchHandler);
+    }
+
+    static preloaderShow(instance){
+        const {renderedElement} = instance;
+        const preloader = renderedElement.querySelector('.lightSelect__preloader');
+        preloader.classList.add('lightSelect__preloader--active');
+    }
+
+    static preloaderRemove(instance){
+        const {renderedElement} = instance;
+        const preloader = renderedElement.querySelector('.lightSelect__preloader');
+        preloader.classList.remove('lightSelect__preloader--active');
+    }
 }
 
 function initLightSelect(elementSelector, options = {}) {
@@ -219,6 +254,30 @@ function initLightSelect(elementSelector, options = {}) {
     })
 }
 
+function getJSON(url, options = {}){
+    try{
+        return fetch(url).then(data => data.json());
+    }
+    catch (e) {
+        return [{text: 'error', value: 'blah'}]
+    }
+
+}
+
+function throttleLimiter(callback, timeout){
+    let isLimited = false;
+
+    return function () {
+        if(!isLimited){
+            isLimited = true;
+            setTimeout(() => {
+                callback();
+                isLimited = false;
+            }, timeout)
+        }
+    }
+}
+
 document.addEventListener("DOMContentLoaded", function () {
 
     initLightSelect('.light-select');
@@ -226,27 +285,24 @@ document.addEventListener("DOMContentLoaded", function () {
         isSearch: true,
     });
 
+    const searchInput = document.querySelector('.lightSelect__search');
+
+    const getCities = throttleLimiter(async function () {
+        LightSelect.preloaderShow(searchInput.LightSelect);
+        LightSelect.replaceItems(searchInput.LightSelect, await getJSON('http://localhost:3000/cities'))
+        LightSelect.preloaderRemove(searchInput.LightSelect);
+    }, 1000)
+
+    LightSelect.onSearchInput(searchInput.LightSelect,  async function () {
+        const renderedElement = searchInput.LightSelect.renderedElement;
+        const inputField = renderedElement.querySelector('.lightSelect__search-control');
+
+        if(inputField.value.length > 3){
+            await getCities();
+        }
+    })
 
 });
-
-const arr = [
-    {
-        value: "blah1",
-        text: "blah1"
-    },
-    {
-        value: "blah2",
-        text: "blah2"
-    },
-    {
-        value: "blah3",
-        text: "blah4"
-    },
-    {
-        value: "blah4",
-        text: "blah5"
-    },
-]
 
 
 

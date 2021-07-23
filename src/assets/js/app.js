@@ -36,17 +36,15 @@ class LightSelect{
             LightSelect.setActiveOption(instance, element.selectedIndex);
         });
 
-        // method which will be handle search input event by callback
+        // handling search field input events
         if(instance.isSearch){
             const searchElem = renderedElement.querySelector('.lightSelect__search-control');
 
-            if(!instance.searchHandler || typeof instance.searchHandler !== 'function'){
-                instance.searchHandler = function () {
-                    console.log('search')
+            searchElem.addEventListener('input', function () {
+                if(instance.onSearchInput && searchElem.value.length > 3){
+                    instance.onSearchInput()
                 }
-            }
-
-            searchElem.addEventListener('input', instance.searchHandler);
+            });
         }
 
         // closing a dropdown if click event detected elsewhere but not on lightSelect DOM-elements
@@ -91,16 +89,14 @@ class LightSelect{
                     </div>
                 </div>
                 <div class="lightSelect__dropdown">
-                    <div class="lightSelect__dropdown-inner">
-                        <div class="lightSelect__preloader">
-                            <div class="loadingio-spinner-rolling-qeyqj7cntg">
-                                <div class="ldio-xalf9ctbgyn">
-                                    <div></div>
-                                </div>
+                    <div class="lightSelect__preloader">
+                        <div class="loadingio-spinner-rolling-qeyqj7cntg">
+                            <div class="ldio-xalf9ctbgyn">
+                                <div></div>
                             </div>
                         </div>
-                        <div class="lightSelect__list"></div>
                     </div>
+                    <div class="lightSelect__list"></div>
                 </div>
             `;
 
@@ -108,7 +104,7 @@ class LightSelect{
         // const optionsCollection = this.element.querySelectorAll('option');
 
         // getting dropdown element and list element from main wrapper which was created above
-        const dropdownEl = wrapperEl.querySelector('.lightSelect__dropdown-inner');
+        const dropdownEl = wrapperEl.querySelector('.lightSelect__dropdown');
         const optionsListEl = dropdownEl.querySelector('.lightSelect__list');
 
         // appending option elements values to list items
@@ -198,6 +194,10 @@ class LightSelect{
         renderedElement.querySelector('.lightSelect__title').classList.add('lightSelect__title--active');
         renderedElement.querySelector('.lightSelect__dropdown').classList.add('lightSelect__dropdown--visible');
 
+        if(instance.onOpen){
+            instance.onOpen();
+        }
+
         if(isSearch){
             renderedElement.querySelector('.lightSelect__search-control').focus();
         }
@@ -209,6 +209,10 @@ class LightSelect{
         renderedElement.classList.remove('lightSelect--active');
         renderedElement.querySelector('.lightSelect__title').classList.remove('lightSelect__title--active')
         renderedElement.querySelector('.lightSelect__dropdown').classList.remove('lightSelect__dropdown--visible');
+
+        if(instance.onHide){
+            instance.onHide();
+        }
 
         if(isSearch){
             renderedElement.querySelector('.lightSelect__search-control').value = "";
@@ -293,14 +297,19 @@ document.addEventListener("DOMContentLoaded", function () {
         LightSelect.preloaderRemove(searchInput.LightSelect);
     }, 1000)
 
-    LightSelect.onSearchInput(searchInput.LightSelect,  async function () {
-        const renderedElement = searchInput.LightSelect.renderedElement;
-        const inputField = renderedElement.querySelector('.lightSelect__search-control');
+    searchInput.LightSelect.onOpen = function () {
+        const bodyElem = document.querySelector('body');
+        bodyElem.classList.add('no-overflow','overlay');
+    }
 
-        if(inputField.value.length > 3){
-            await getCities();
-        }
-    })
+    searchInput.LightSelect.onHide = function () {
+        const bodyElem = document.querySelector('body');
+        bodyElem.classList.remove('no-overflow','overlay');
+    }
+
+    searchInput.LightSelect.onSearchInput = async function () {
+        await getCities();
+    }
 
 });
 

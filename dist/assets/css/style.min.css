@@ -3,6 +3,20 @@ body {
   font-family: Arial, sans-serif;
 }
 
+.overlay::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.no-overflow {
+  overflow: hidden;
+}
+
 .lightSelect {
   display: inline-flex;
   position: relative;
@@ -22,10 +36,6 @@ body {
   border-radius: 3px;
   border: 1px solid rgba(0, 0, 0, 0.5);
   cursor: pointer;
-}
-
-.lightSelect__title--active {
-  border-radius: 3px 3px 0 0;
 }
 
 .lightSelect__title--active .lightSelect__arrow-item {
@@ -61,15 +71,16 @@ body {
 
 .lightSelect__dropdown {
   display: none;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  width: 100%;
+  position: fixed;
+  left: 50%;
+  top: 25vh;
+  width: 80%;
+  max-width: 400px;
+  transform: translate(-50%, 0);
   overflow-x: auto;
   border: 1px solid rgba(0, 0, 0, 0.5);
-  border-top: none;
   padding: 10px 0;
-  border-radius: 0 0 3px 3px;
+  border-radius: 3px;
   z-index: 100;
   background-color: #fff;
 }
@@ -183,5 +194,34 @@ body {
 
 .ldio-xalf9ctbgyn div {
   box-sizing: content-box;
+}
+
+@media (min-width: 1000px) {
+  .lightSelect__title--active {
+    border-radius: 3px 3px 0 0;
+  }
+
+  .lightSelect__dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    max-width: none;
+    transform: none;
+    border-radius: 0 0 3px 3px;
+    border-top: none;
+  }
+}
+
+@media (min-width: 1260px) {
+  html.no-overflow,
+  body.no-overflow {
+    overflow: auto;
+  }
+
+  html.overlay::before,
+  body.overlay::before {
+    display: none;
+  }
 }
 /*# sourceMappingURL=style.min.css.map */

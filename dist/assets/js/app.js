@@ -1,12 +1,13 @@
 class LightSelect{
 
-    constructor({element, isSearch = false}) {
+    constructor({element, isSearch = false, addititonalClass = ""}) {
         this.element = element;
         this.renderedElement = null;
         this.isSearch = isSearch;
         this.isModified = false;
         this.isOpened = false;
         this.defaultState = [];
+        this.addititonalClass = addititonalClass;
         LightSelect.#init(this);
     }
 
@@ -43,11 +44,8 @@ class LightSelect{
             const searchElem = renderedElement.querySelector('.lightSelect__search-control');
 
             searchElem.addEventListener('input', function () {
-                if(instance.onSearchInput && searchElem.value.length > 3){
+                if(instance.onSearchInput && typeof instance.onSearchInput === 'function'){
                     instance.onSearchInput()
-                } else if(instance.isModified){
-                    instance.isModified = false;
-                    LightSelect.replaceItems(instance, instance.defaultState, -1)
                 }
             });
         }
@@ -87,7 +85,7 @@ class LightSelect{
         LightSelect.#setHandlers(instance);
     }
 
-    static #render({element, isSearch}){
+    static #render({element, isSearch, addititonalClass}){
         const optionsCollection = element.querySelectorAll('option');
 
         // creating main wrapper
@@ -111,6 +109,10 @@ class LightSelect{
                     <div class="lightSelect__list"></div>
                 </div>
             `;
+
+        if(addititonalClass){
+            wrapperEl.classList.add(addititonalClass)
+        }
 
         // getting option elements from source <select> DOM-element
         // const optionsCollection = this.element.querySelectorAll('option');
@@ -160,12 +162,24 @@ class LightSelect{
             element.classList.remove('lightSelect__list-item--selected');
         });
 
-        // add activity class to selected LightSelect list item and setting title text value
+        // add activity class to selected LightSelect list item and setting title text value/ index
         selectedElement.classList.add('lightSelect__list-item--selected');
         title.textContent = selectedElement.textContent;
+        title.dataset['index'] = index;
+        title.dataset['value'] = selectedElement.dataset['value'];
 
         // changing source <select> DOM-element state
         element.selectedIndex = index;
+
+        instance.activeOptionData = {
+            index,
+            value: selectedElement.dataset['value'],
+            text: selectedElement.textContent
+        }
+
+        if(instance.onChange && typeof instance.onChange === 'function'){
+            instance.onChange();
+        }
     }
 
     static appendItems(instance, itemsArr, activeIndex = 0){
@@ -268,7 +282,7 @@ function initLightSelect(elementSelector, options = {}) {
 }
 
 function getJSON(url, options = {}){
-    return fetch(url).then(data => data.json());
+    return fetch(url).then(data => data.json())
 }
 
 function throttleLimiter(callback, timeout){
@@ -287,25 +301,53 @@ function throttleLimiter(callback, timeout){
 
 document.addEventListener("DOMContentLoaded", function () {
 
-    // initLightSelect('.light-select');
-    initLightSelect('.light-select-search', {
+    // initializing selects
+    initLightSelect('.light-select-city', {
         isSearch: true,
+        addititonalClass: 'lightSelect__city'
     });
 
-    const searchInput = document.querySelector('.lightSelect__search');
+    initLightSelect('.light-select-department', {
+        isSearch: true,
+        addititonalClass: 'lightSelect__department'
+    });
 
+    // getting lightselect DOM-elements
+    const citySelect = document.querySelector('.lightSelect__city');
+    const departmentSelect = document.querySelector('.lightSelect__department');
+
+    // getting cities list
     const getCities = throttleLimiter(async function () {
-        LightSelect.preloaderShow(searchInput.LightSelect);
-        LightSelect.replaceItems(searchInput.LightSelect, await getJSON('https://zinger1988.github.io/fakeDB/db.json'), -1)
-        LightSelect.preloaderRemove(searchInput.LightSelect);
+        LightSelect.preloaderShow(citySelect.LightSelect);
+        LightSelect.replaceItems(
+            citySelect.LightSelect,
+            await getJSON('https://zinger1988.github.io/fakeDB/regions.json')
+                .then(({regions}) => regions.map(({id, name}) => ({ value: id, text: name }))),
+            -1)
+        LightSelect.preloaderRemove(citySelect.LightSelect);
     }, 1000)
 
-    searchInput.LightSelect.onOpen = function () {
+    // getting post departments list
+    const getDepartments = throttleLimiter(async function () {
+
+        const departmentID = citySelect.LightSelect.renderedElement.querySelector('.lightSelect__title-text').dataset['value']
+
+
+        LightSelect.preloaderShow(departmentSelect.LightSelect);
+        LightSelect.replaceItems(
+            departmentSelect.LightSelect,
+            await getJSON('https://zinger1988.github.io/fakeDB/regions.json')
+                .then(({regions}) => regions.map(({id, name}) => ({ value: id, text: name }))),
+            0)
+        LightSelect.preloaderRemove(departmentSelect.LightSelect);
+    }, 1000)
+
+    citySelect.LightSelect.onOpen = function () {
         const bodyElem = document.querySelector('body');
         bodyElem.classList.add('no-overflow','overlay');
     }
 
-    searchInput.LightSelect.onHide = function () {
+    citySelect.LightSelect.onHide = function () {
         const bodyElem = document.querySelector('body');
         bodyElem.classList.remove('no-overflow','overlay');
 
@@ -314,8 +356,19 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    searchInput.LightSelect.onSearchInput = async function () {
-        await getCities();
+    citySelect.LightSelect.onChange = function () {
+        getDepartments()
+    }
+
+    citySelect.LightSelect.onSearchInput = async function () {
+        const searchFiled = this.renderedElement.querySelector('.lightSelect__search-control');
+
+        if(searchFiled.value.length >= 3){
+            await getCities();
+        } else if(this.isModified){
+            this.isModified = false;
+            LightSelect.replaceItems(this, this.defaultState, -1)
+        }
     }
 
 });

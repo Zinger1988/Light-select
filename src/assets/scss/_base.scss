@@ -2,7 +2,7 @@ html,
 body{
   font-family: Arial, sans-serif;
 
-  @include media(">=xl"){
+  @include media(">=lg"){
     &.no-overflow{
       overflow: auto;
     }

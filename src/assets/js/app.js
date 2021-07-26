@@ -318,7 +318,7 @@ function initLightSelect(elementSelector, options = {}) {
 }
 
 function getJSON(url, options = {}){
-    return fetch(url)
+    return fetch(url, options)
         .then(data => {
             if(data.ok && data.status === 200){
                 return data.json()
@@ -328,10 +328,10 @@ function getJSON(url, options = {}){
         })
 }
 
-function throttleLimiter(callback, timeout){
+function throttleLimiter(timeout){
     let isLimited = false;
 
-    return function () {
+    return function (callback) {
         if(!isLimited){
             isLimited = true;
             setTimeout(() => {
@@ -358,20 +358,26 @@ document.addEventListener("DOMContentLoaded", function () {
     const departmentSelect = document.querySelector('.light-select-department');
 
     // getting cities list
-    const getCities = throttleLimiter(async function (carrierID, value) {
-
+    const getCities = async function (carrierID, searchControl) {
         try {
+            console.log(carrierID, searchControl.value)
+
+            const formData = new FormData();
+            formData.append('carrier_id', carrierID);
+            formData.append('name', searchControl.value);
+
             LightSelect.preloaderShow(citySelect.LightSelect);
             LightSelect.replaceItems(
                 citySelect.LightSelect,
-                await getJSON('https://zinger1988.github.io/fakeDB/regions.json',
-                    {
-                        method: 'POST',
-                        body: {
-                            carrier_id: carrierID,
-                            name: value,
-                        }
-                    })
+                // await getJSON('https://zinger1988.github.io/fakeDB/regions.json',
+                //     {
+                //         headers: {
+                //             "Content-Type": "multipart/form-data"
+                //         },
+                //         method: "POST",
+                //         body: formData
+                //     })
+                await getJSON('https://zinger1988.github.io/fakeDB/regions.json')
                     .then(({regions}) => regions.map(({id, name}) => ({ value: id, text: name }))),
                 -1)
         } catch (e) {
@@ -379,26 +385,30 @@ document.addEventListener("DOMContentLoaded", function () {
         } finally {
             LightSelect.preloaderRemove(citySelect.LightSelect);
         }
-    }, 1000);
+    };
 
     // getting post departments list
-    const getDepartments = throttleLimiter(async function (carrierID, regionID, value) {
-
-        // const departmentID = citySelect.LightSelect.renderedElement.querySelector('.lightSelect__title-text').dataset['value']
-
+    const getDepartments = async function (carrierID, searchControl, regionID) {
         try {
+            console.log(carrierID, searchControl.value, regionID)
+
+            const formData = new FormData();
+            formData.append('carrier_id', carrierID);
+            formData.append('name', searchControl.value);
+            formData.append('region_id', regionID);
+
             LightSelect.preloaderShow(departmentSelect.LightSelect);
             LightSelect.replaceItems(
                 departmentSelect.LightSelect,
-                await getJSON('https://zinger1988.github.io/fakeDB/departments.json',
-                    {
-                        method: 'POST',
-                        body: {
-                            carrier_id: carrierID,
-                            region_id: carrierID,
-                            name: value,
-                        }
-                    })
+                // await getJSON('https://zinger1988.github.io/fakeDB/departments.json',
+                //     {
+                //         headers: {
+                //              "Content-Type": "multipart/form-data"
+                //         },
+                //         method: 'POST',
+                //         body: formData
+                //     })
+                await getJSON('https://zinger1988.github.io/fakeDB/departments.json')
                     .then(({stocks}) => stocks.map(({id, name}) => ({value: id, text: name, disabled: false}))),
                 -1);
         } catch (e) {
@@ -406,9 +416,9 @@ document.addEventListener("DOMContentLoaded", function () {
         } finally {
             LightSelect.preloaderRemove(departmentSelect.LightSelect);
         }
+    };
 
-
-    }, 1000)
+    const setThrottle = throttleLimiter(1000);
 
     citySelect.LightSelect.onOpen = function () {
         const bodyElem = document.querySelector('body');
@@ -444,7 +454,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     citySelect.LightSelect.onSearchInput = async function () {
         if(this.rendered._searchControl.value.length >= 3){
-            await getCities(); // carrierID, value
+
+            await setThrottle(getCities.bind(null, 2, this.rendered._searchControl));
+
         } else if(this.state._isModified){
             this.state._isModified = false;
             LightSelect.replaceItems(this, this.state.defaultState, -1)
@@ -453,7 +465,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     departmentSelect.LightSelect.onSearchInput = async function () {
         if(this.rendered._searchControl.value.length >= 3){
-            await getDepartments();
+
+            await setThrottle(getDepartments.bind(null, 2, this.rendered._searchControl, citySelect.LightSelect.state._activeElemData.value));
+
         } else if(this.state._isModified){
             this.state._isModified = false;
 

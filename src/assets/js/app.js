@@ -1,24 +1,35 @@
 class LightSelect{
 
-    constructor({element, isSearch = false, addititonalClass = ""}) {
-        this.element = element;
-        this.renderedElement = null;
-        this.isSearch = isSearch;
-        this.isModified = false;
-        this.isOpened = false;
-        this.defaultState = [];
-        this.addititonalClass = addititonalClass;
+    constructor({element, isSearch = false}) {
+        this.source = {
+            _select: element,
+            _options: null,
+        };
+        this.rendered = {
+            _container: null,
+            _title: null,
+            _titleText: null,
+            _searchControl: null,
+            _list: null,
+            _listItems: null,
+            _dropdown: null
+        };
+        this.state = {
+            search: isSearch,
+            _isOpened: false,
+            _isModified: false,
+            _activeElemData: {},
+            defaultState: [],
+        };
         LightSelect.#init(this);
     }
 
     static #setHandlers(instance){
 
-        const {renderedElement, element} = instance;
-        const title = renderedElement.querySelector('.lightSelect__title');
-        const list = renderedElement.querySelector('.lightSelect__list');
+        const {source: {_select}, rendered: {_container, _title, _list, _searchControl}, state: {search}} = instance;
 
         // toggling dropdown visibility
-        title.addEventListener('click', () => {
+        _title.addEventListener('click', () => {
             if(instance.isOpened){
                 LightSelect.hide(instance);
             } else {
@@ -27,7 +38,7 @@ class LightSelect{
         });
 
         // setting LightSelect value when list item was clicked
-        list.addEventListener('click', e => {
+        _list.addEventListener('click', e => {
             if(e.target.classList.contains('lightSelect__list-item')){
                 LightSelect.setActiveOption(instance, +e.target.dataset.index);
                 LightSelect.hide(instance);
@@ -35,15 +46,13 @@ class LightSelect{
         });
 
         // setting LightSelect value when source <select> was changed
-        element.addEventListener('change', () => {
-            LightSelect.setActiveOption(instance, element.selectedIndex);
+        _select.addEventListener('change', () => {
+            LightSelect.setActiveOption(instance, _select.selectedIndex);
         });
 
         // handling search field input events
-        if(instance.isSearch){
-            const searchElem = renderedElement.querySelector('.lightSelect__search-control');
-
-            searchElem.addEventListener('input', function () {
+        if(search){
+            _searchControl.addEventListener('input', function () {
                 if(instance.onSearchInput && typeof instance.onSearchInput === 'function'){
                     instance.onSearchInput()
                 }
@@ -52,7 +61,7 @@ class LightSelect{
 
         // closing a dropdown if click event detected elsewhere but not on lightSelect DOM-elements
         window.addEventListener('click', (e) => {
-            if(e.target.closest('.lightSelect') === instance.renderedElement){
+            if(e.target.closest('.lightSelect') === _container){
                 e.stopPropagation();
             } else {
                 LightSelect.hide(instance);
@@ -62,9 +71,9 @@ class LightSelect{
 
     static #init(instance){
 
-        let {element, renderedElement, defaultState} = instance;
+        let {source: {_select}, state: {defaultState}} = instance;
 
-        element.querySelectorAll('option').forEach(option => {
+        _select.querySelectorAll('option').forEach(option => {
             defaultState.push({
                 text: option.textContent,
                 value: option.value
@@ -72,26 +81,27 @@ class LightSelect{
         })
 
         // storing an element to LightSelect instance
-        element.style.display = 'none';
+        _select.style.display = 'none';
 
         // rendering and storing rendered element to LightSelect instance
-        instance.renderedElement = LightSelect.#render(instance);
-        instance.renderedElement.LightSelect = instance;
+        LightSelect.#render(instance);
+        _select.LightSelect = instance;
 
         // setting activeIndex to LightSelect DOM-element
-        LightSelect.setActiveOption(instance, element.selectedIndex);
+        LightSelect.setActiveOption(instance, _select.selectedIndex);
 
         // installation of handlers for basic functional elements
         LightSelect.#setHandlers(instance);
     }
 
-    static #render({element, isSearch, addititonalClass}){
-        const optionsCollection = element.querySelectorAll('option');
+    static #render(instance){
+        const {source: {_select}, state: {search}} = instance;
+        let {source, rendered} = instance
 
         // creating main wrapper
-        const wrapperEl = document.createElement('div');
-        wrapperEl.classList.add('lightSelect');
-        wrapperEl.innerHTML = `
+        rendered._container = document.createElement('div');
+        rendered._container.classList.add('lightSelect');
+        rendered._container.innerHTML = `
                 <div class="lightSelect__title">
                     <div class="lightSelect__title-text"></div>
                     <div class="lightSelect__arrow">
@@ -110,68 +120,63 @@ class LightSelect{
                 </div>
             `;
 
-        if(addititonalClass){
-            wrapperEl.classList.add(addititonalClass)
-        }
-
-        // getting option elements from source <select> DOM-element
-        // const optionsCollection = this.element.querySelectorAll('option');
-
-        // getting dropdown element and list element from main wrapper which was created above
-        const dropdownEl = wrapperEl.querySelector('.lightSelect__dropdown');
-        const optionsListEl = dropdownEl.querySelector('.lightSelect__list');
+        source._options = _select.querySelectorAll('option');
+        rendered._title = rendered._container.querySelector('.lightSelect__title');
+        rendered._titleText = rendered._container.querySelector('.lightSelect__title-text');
+        rendered._list = rendered._container.querySelector('.lightSelect__list');
+        rendered._dropdown = rendered._container.querySelector('.lightSelect__dropdown');
 
         // appending option elements values to list items
-        optionsCollection.forEach((option, index) => {
-            optionsListEl.innerHTML += `
-                    <div class="lightSelect__list-item" data-value="${option.value}" data-index="${index}">${option.textContent}</div>
+        source._options.forEach((option, index) => {
+            rendered._list.innerHTML += `
+                    <div class="lightSelect__list-item" data-disabled="${option.disabled}" data-value="${option.value}" data-index="${index}">${option.textContent}</div>
                 `;
         })
 
         // appending main wrapper after source <select> DOM-element
-        element.after(wrapperEl);
+        _select.after(rendered._container);
 
         // appending search panel into dropdown element
-        if(isSearch){
-            wrapperEl.classList.add('lightSelect__search');
+        if(search){
+            rendered._container.classList.add('lightSelect__search');
 
             const searchPanel = document.createElement('div');
             searchPanel.classList.add('lightSelect__search-panel');
             searchPanel.innerHTML = `<input class="lightSelect__search-control" type="text" placeholder="Поиск">`;
+            rendered._dropdown.prepend(searchPanel);
 
-            dropdownEl.prepend(searchPanel);
+            rendered._searchControl = searchPanel.querySelector('.lightSelect__search-control');
         }
-
-        return wrapperEl;
     }
 
     static setActiveOption(instance, index = 0){
-        const {renderedElement, element} = instance;
-        const title = renderedElement.querySelector('.lightSelect__title-text');
-        const listElements = renderedElement.querySelectorAll('.lightSelect__list-item');
-        let selectedElement = listElements[index];
+        const {source: {_select}, rendered: {_titleText, _list}} = instance;
+
+        instance.rendered._listItems = _list.querySelectorAll('.lightSelect__list-item');
+
+        let selectedElement = instance.rendered._listItems[index];
 
         if(!selectedElement){
             console.error(`nonexistent item by index: ${index}`);
             index = 0;
-            selectedElement = listElements[index];
+            selectedElement = instance.rendered._listItems[index];
         }
 
         // removing activity class from all LigthSelect list item
-        listElements.forEach(element => {
+        instance.rendered._listItems.forEach(element => {
             element.classList.remove('lightSelect__list-item--selected');
         });
 
         // add activity class to selected LightSelect list item and setting title text value/ index
         selectedElement.classList.add('lightSelect__list-item--selected');
-        title.textContent = selectedElement.textContent;
-        title.dataset['index'] = index;
-        title.dataset['value'] = selectedElement.dataset['value'];
+        _titleText.textContent = selectedElement.textContent;
+        _titleText.dataset['index'] = index;
+        _titleText.dataset['value'] = selectedElement.dataset['value'];
 
         // changing source <select> DOM-element state
-        element.selectedIndex = index;
+        _select.selectedIndex = index;
 
-        instance.activeOptionData = {
+        instance.state._activeElemData = {
             index,
             value: selectedElement.dataset['value'],
             text: selectedElement.textContent
@@ -183,89 +188,89 @@ class LightSelect{
     }
 
     static appendItems(instance, itemsArr, activeIndex = 0){
-        const {element, renderedElement } = instance;
-
-        const list = renderedElement.querySelector('.lightSelect__list');
+        const {source: {_select}, rendered: {_list} } = instance;
 
         itemsArr.forEach(({value, text}) => {
-            let listLength = renderedElement.querySelectorAll('.lightSelect__list-item').length;
-
-            list.innerHTML += `
-                    <div class="lightSelect__list-item" data-value="${value}" data-index="${listLength}">${text}</div>
-                `;
-
-            element.innerHTML += `<option value="${value}">${text}</option>`
+            let listLength = _list.querySelectorAll('.lightSelect__list-item').length;
+            _list.innerHTML += `<div class="lightSelect__list-item" data-value="${value}" data-index="${listLength}">${text}</div>`;
+            _select.innerHTML += `<option value="${value}">${text}</option>`
         })
 
         if(!itemsArr.length){
-            list.innerHTML = `<div class="lightSelect__list-item">No options to show</div>`;
+            _list.innerHTML = `<div class="lightSelect__list-item">No options to show</div>`;
         }
 
-        instance.isModified = true;
+        instance.state._isModified = true;
 
         if(activeIndex >= 0){
             LightSelect.setActiveOption(instance, activeIndex)
         }
     }
 
-    static replaceItems(instance, itemsArr, activeIndex){
+    static replaceItems(instance, itemsArr, activeIndex){ // --------------------------------------------
         LightSelect.deleteItems(instance);
         LightSelect.appendItems(instance, itemsArr, activeIndex);
     }
 
-    static deleteItems({element, renderedElement, isModified}){
-        element.innerHTML = "";
-        renderedElement.querySelector('.lightSelect__list').innerHTML = "";
-        isModified = true;
+    static deleteItems(instance){
+        const {source: {_select}, rendered: {_container, _list}} = instance;
+        _select.innerHTML = "";
+        _list.innerHTML = "";
+        instance.state._isModified = true;
     }
 
     static show(instance){
-        let {renderedElement, isSearch} = instance;
-        instance.isOpened = true;
-        renderedElement.classList.add('lightSelect--active');
-        renderedElement.querySelector('.lightSelect__title').classList.add('lightSelect__title--active');
-        renderedElement.querySelector('.lightSelect__dropdown').classList.add('lightSelect__dropdown--visible');
+        const {rendered: {_container, _title, _dropdown, _searchControl}, state: {search}} = instance;
+        let { state: {_isOpened} } = instance;
 
-        if(instance.onOpen){
+        _isOpened = true;
+        _container.classList.add('lightSelect--active');
+        _title.classList.add('lightSelect__title--active');
+        _dropdown.classList.add('lightSelect__dropdown--visible');
+
+        if(instance.onOpen && typeof instance.onOpen === 'function'){
             instance.onOpen();
         }
 
-        if(isSearch){
-            renderedElement.querySelector('.lightSelect__search-control').focus();
+        if(search){
+            _searchControl.focus();
         }
     }
 
     static hide(instance){
-        let {renderedElement, isSearch, isModified, defaultState} = instance;
-        instance.isOpened = false;
-        renderedElement.classList.remove('lightSelect--active');
-        renderedElement.querySelector('.lightSelect__title').classList.remove('lightSelect__title--active')
-        renderedElement.querySelector('.lightSelect__dropdown').classList.remove('lightSelect__dropdown--visible');
+        const {rendered: {_container, _title, _dropdown, _searchControl}, state: {search}} = instance;
+        let { state: {_isOpened}, } = instance;
 
-        if(instance.onHide){
+        _isOpened = false;
+        _container.classList.remove('lightSelect--active');
+        _title.classList.remove('lightSelect__title--active')
+        _dropdown.classList.remove('lightSelect__dropdown--visible');
+
+        if(instance.onHide && typeof instance.onHide === 'function'){
             instance.onHide();
         }
 
-        if(isSearch){
-            renderedElement.querySelector('.lightSelect__search-control').value = "";
+        if(search){
+            _searchControl.value = "";
         }
     }
 
-    static destroy({element, renderedElement}){
-        element.style = "";
-        renderedElement.remove();
-        delete element.LightSelect;
+    static destroy(instance){
+        const {source: {_select}, rendered: {_container}} = instance;
+        _select.style = "";
+        _container.remove();
+        delete _select.LightSelect;
     }
 
     static preloaderShow(instance){
-        const {renderedElement} = instance;
-        const preloader = renderedElement.querySelector('.lightSelect__preloader');
+        const {rendered: {_container}} = instance;
+        const preloader = _container.querySelector('.lightSelect__preloader');
         preloader.classList.add('lightSelect__preloader--active');
     }
 
     static preloaderRemove(instance){
-        const {renderedElement} = instance;
-        const preloader = renderedElement.querySelector('.lightSelect__preloader');
+        const {rendered: {_container}} = instance;
+        const preloader = _container.querySelector('.lightSelect__preloader');
         preloader.classList.remove('lightSelect__preloader--active');
     }
 }
@@ -304,17 +309,22 @@ document.addEventListener("DOMContentLoaded", function () {
     // initializing selects
     initLightSelect('.light-select-city', {
         isSearch: true,
-        addititonalClass: 'lightSelect__city'
+        // defaultState: [
+        //     {text: "Киев", value: "1"},
+        //     {text: "Луцк", value: "2"},
+        //     {text: "Харьков", value: "3"},
+        //     {text: "Днепропетровск", value: "4"},
+        //     {text: "Одесса", value: "5"}
+        // ]
     });
 
     initLightSelect('.light-select-department', {
         isSearch: true,
-        addititonalClass: 'lightSelect__department'
     });
 
     // getting lightselect DOM-elements
-    const citySelect = document.querySelector('.lightSelect__city');
-    const departmentSelect = document.querySelector('.lightSelect__department');
+    const citySelect = document.querySelector('.light-select-city');
+    const departmentSelect = document.querySelector('.light-select-department');
 
     // getting cities list
     const getCities = throttleLimiter(async function () {
@@ -330,8 +340,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // getting post departments list
     const getDepartments = throttleLimiter(async function () {
 
-        const departmentID = citySelect.LightSelect.renderedElement.querySelector('.lightSelect__title-text').dataset['value']
-
+        // const departmentID = citySelect.LightSelect.renderedElement.querySelector('.lightSelect__title-text').dataset['value']
 
         LightSelect.preloaderShow(departmentSelect.LightSelect);
         LightSelect.replaceItems(
@@ -351,8 +360,18 @@ document.addEventListener("DOMContentLoaded", function () {
         const bodyElem = document.querySelector('body');
         bodyElem.classList.remove('no-overflow','overlay');
 
-        if(this.isModified){
-            LightSelect.replaceItems(this, this.defaultState, -1);
+        const activeElemData = this.state._activeElemData;
+
+        if(this.state._isModified){
+
+            LightSelect.replaceItems(this, this.state.defaultState, -1);
+
+            const isElemAlreadyExists = this.state.defaultState.find(element => element.value === activeElemData.value);
+            if(!isElemAlreadyExists){
+                LightSelect.appendItems(this, [activeElemData], this.state.defaultState.length)
+            } else {
+                LightSelect.setActiveOption(this, activeElemData.index);
+            }
         }
     }
 
@@ -361,13 +380,12 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     citySelect.LightSelect.onSearchInput = async function () {
-        const searchFiled = this.renderedElement.querySelector('.lightSelect__search-control');
-
-        if(searchFiled.value.length >= 3){
+        if(this.rendered._searchControl.value.length >= 3){
             await getCities();
-        } else if(this.isModified){
-            this.isModified = false;
-            LightSelect.replaceItems(this, this.defaultState, -1)
+        } else if(this.state._isModified){
+            this.state._isModified = false;
+
+            LightSelect.replaceItems(this, this.state.defaultState, -1)
         }
     }
 

@@ -173,6 +173,10 @@ body{
     font-size: 14px;
     line-height: 18px;
 
+    &[data-disabled="true"]{
+      display: none;
+    }
+
     &--selected{
       background-color: rgba(#1d9dff, .1);
     }

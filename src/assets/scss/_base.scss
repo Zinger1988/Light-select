@@ -46,6 +46,17 @@ body{
 
   $this: &;
 
+  &--disabled{
+    #{$this}__title{
+      background-color: rgba(0,0,0,.05);
+      border: 1px solid rgba(0,0,0,.3);
+    }
+
+    #{$this}__title-text{
+      color: rgba(0,0,0,.5);
+    }
+  }
+
   &__title{
     width: 100%;
     display: flex;
@@ -226,3 +237,8 @@ body{
 }
 
 .ldio-xalf9ctbgyn div { box-sizing: content-box; }
+
+.light-select-city,
+.light-select-department{
+  display: block !important;
+}

@@ -1,6 +1,6 @@
 class LightSelect{
 
-    constructor({element, isSearch = false}) {
+    constructor({element, isSearch = false, disabled = false}) {
         this.source = {
             _select: element,
             _options: null,
@@ -16,6 +16,7 @@ class LightSelect{
         };
         this.state = {
             search: isSearch,
+            disabled: disabled,
             _isOpened: false,
             _isModified: false,
             _activeElemData: {},
@@ -39,7 +40,7 @@ class LightSelect{
 
         // setting LightSelect value when list item was clicked
         _list.addEventListener('click', e => {
-            if(e.target.classList.contains('lightSelect__list-item')){
+            if(e.target.classList.contains('lightSelect__list-item') && e.target.dataset.disabled !== 'true'){
                 LightSelect.setActiveOption(instance, +e.target.dataset.index);
                 LightSelect.hide(instance);
             }
@@ -76,7 +77,8 @@ class LightSelect{
         _select.querySelectorAll('option').forEach(option => {
             defaultState.push({
                 text: option.textContent,
-                value: option.value
+                value: option.value,
+                disabled: option.disabled
             })
         })
 
@@ -94,9 +96,23 @@ class LightSelect{
         LightSelect.#setHandlers(instance);
     }
 
+    static disable(instance){
+        let {state, rendered, source} = instance;
+        state.disabled = true;
+        rendered._container.classList.add('lightSelect--disabled');
+        source._select.disabled = true;
+    }
+
+    static enable(instance){
+        let {state, rendered, source} = instance;
+        state.disabled = false;
+        rendered._container.classList.remove('lightSelect--disabled');
+        source._select.disabled = false;
+    }
+
     static #render(instance){
         const {source: {_select}, state: {search}} = instance;
-        let {source, rendered} = instance
+        let {source, rendered, state} = instance
 
         // creating main wrapper
         rendered._container = document.createElement('div');
@@ -119,6 +135,10 @@ class LightSelect{
                     <div class="lightSelect__list"></div>
                 </div>
             `;
+
+        if(state.disabled || _select.disabled){
+            LightSelect.disable(instance)
+        }
 
         source._options = _select.querySelectorAll('option');
         rendered._title = rendered._container.querySelector('.lightSelect__title');
@@ -190,10 +210,15 @@ class LightSelect{
     static appendItems(instance, itemsArr, activeIndex = 0){
         const {source: {_select}, rendered: {_list} } = instance;
 
-        itemsArr.forEach(({value, text}) => {
+        itemsArr.forEach(({value, text, disabled}) => {
             let listLength = _list.querySelectorAll('.lightSelect__list-item').length;
-            _list.innerHTML += `<div class="lightSelect__list-item" data-value="${value}" data-index="${listLength}">${text}</div>`;
-            _select.innerHTML += `<option value="${value}">${text}</option>`
+            _list.innerHTML += `<div class="lightSelect__list-item" data-disabled="${disabled}" data-value="${value}" data-index="${listLength}">${text}</div>`;
+
+            const option = document.createElement("option");
+            option.disabled = !!disabled;
+            option.value = value;
+            option.textContent = text;
+            _select.append(option);
         })
 
         if(!itemsArr.length){
@@ -221,9 +246,12 @@ class LightSelect{
 
     static show(instance){
         const {rendered: {_container, _title, _dropdown, _searchControl}, state: {search}} = instance;
-        let { state: {_isOpened} } = instance;
+        let { state } = instance;
 
-        _isOpened = true;
+
+        if(state.disabled || state._isOpened) return
+
+        state._isOpened = true;
         _container.classList.add('lightSelect--active');
         _title.classList.add('lightSelect__title--active');
         _dropdown.classList.add('lightSelect__dropdown--visible');
@@ -239,9 +267,12 @@ class LightSelect{
 
     static hide(instance){
         const {rendered: {_container, _title, _dropdown, _searchControl}, state: {search}} = instance;
-        let { state: {_isOpened}, } = instance;
+        let { state } = instance;
 
-        _isOpened = false;
+
+        if(state.disabled || !state._isOpened) return
+
+        state._isOpened = false;
         _container.classList.remove('lightSelect--active');
         _title.classList.remove('lightSelect__title--active')
         _dropdown.classList.remove('lightSelect__dropdown--visible');
@@ -287,7 +318,14 @@ function initLightSelect(elementSelector, options = {}) {
 }
 
 function getJSON(url, options = {}){
-    return fetch(url).then(data => data.json())
+    return fetch(url)
+        .then(data => {
+            if(data.ok && data.status === 200){
+                return data.json()
+            } else {
+                throw new Error(`Unable to fetch url: ${url}`);
+            }
+        })
 }
 
 function throttleLimiter(callback, timeout){
@@ -309,13 +347,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // initializing selects
     initLightSelect('.light-select-city', {
         isSearch: true,
-        // defaultState: [
-        //     {text: "Киев", value: "1"},
-        //     {text: "Луцк", value: "2"},
-        //     {text: "Харьков", value: "3"},
-        //     {text: "Днепропетровск", value: "4"},
-        //     {text: "Одесса", value: "5"}
-        // ]
     });
 
     initLightSelect('.light-select-department', {
@@ -327,28 +358,56 @@ document.addEventListener("DOMContentLoaded", function () {
     const departmentSelect = document.querySelector('.light-select-department');
 
     // getting cities list
-    const getCities = throttleLimiter(async function () {
-        LightSelect.preloaderShow(citySelect.LightSelect);
-        LightSelect.replaceItems(
-            citySelect.LightSelect,
-            await getJSON('https://zinger1988.github.io/fakeDB/regions.json')
-                .then(({regions}) => regions.map(({id, name}) => ({ value: id, text: name }))),
-            -1)
-        LightSelect.preloaderRemove(citySelect.LightSelect);
-    }, 1000)
+    const getCities = throttleLimiter(async function (carrierID, value) {
+
+        try {
+            LightSelect.preloaderShow(citySelect.LightSelect);
+            LightSelect.replaceItems(
+                citySelect.LightSelect,
+                await getJSON('https://zinger1988.github.io/fakeDB/regions.json',
+                    {
+                        method: 'POST',
+                        body: {
+                            carrier_id: carrierID,
+                            name: value,
+                        }
+                    })
+                    .then(({regions}) => regions.map(({id, name}) => ({ value: id, text: name }))),
+                -1)
+        } catch (e) {
+            console.error(e.message)
+        } finally {
+            LightSelect.preloaderRemove(citySelect.LightSelect);
+        }
+    }, 1000);
 
     // getting post departments list
-    const getDepartments = throttleLimiter(async function () {
+    const getDepartments = throttleLimiter(async function (carrierID, regionID, value) {
 
         // const departmentID = citySelect.LightSelect.renderedElement.querySelector('.lightSelect__title-text').dataset['value']
 
-        LightSelect.preloaderShow(departmentSelect.LightSelect);
-        LightSelect.replaceItems(
-            departmentSelect.LightSelect,
-            await getJSON('https://zinger1988.github.io/fakeDB/regions.json')
-                .then(({regions}) => regions.map(({id, name}) => ({ value: id, text: name }))),
-            0)
-        LightSelect.preloaderRemove(departmentSelect.LightSelect);
+        try {
+            LightSelect.preloaderShow(departmentSelect.LightSelect);
+            LightSelect.replaceItems(
+                departmentSelect.LightSelect,
+                await getJSON('https://zinger1988.github.io/fakeDB/departments.json',
+                    {
+                        method: 'POST',
+                        body: {
+                            carrier_id: carrierID,
+                            region_id: carrierID,
+                            name: value,
+                        }
+                    })
+                    .then(({stocks}) => stocks.map(({id, name}) => ({value: id, text: name, disabled: false}))),
+                -1);
+        } catch (e) {
+            console.error(e.message)
+        } finally {
+            LightSelect.preloaderRemove(departmentSelect.LightSelect);
+        }
+
+
     }, 1000)
 
     citySelect.LightSelect.onOpen = function () {
@@ -376,16 +435,46 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     citySelect.LightSelect.onChange = function () {
-        getDepartments()
+        LightSelect.enable(departmentSelect.LightSelect);
+
+        if(departmentSelect.LightSelect.state._isModified){
+            LightSelect.replaceItems(departmentSelect.LightSelect, departmentSelect.LightSelect.state.defaultState, 0);
+        }
     }
 
     citySelect.LightSelect.onSearchInput = async function () {
         if(this.rendered._searchControl.value.length >= 3){
-            await getCities();
+            await getCities(); // carrierID, value
+        } else if(this.state._isModified){
+            this.state._isModified = false;
+            LightSelect.replaceItems(this, this.state.defaultState, -1)
+        }
+    }
+
+    departmentSelect.LightSelect.onSearchInput = async function () {
+        if(this.rendered._searchControl.value.length >= 3){
+            await getDepartments();
         } else if(this.state._isModified){
             this.state._isModified = false;
 
             LightSelect.replaceItems(this, this.state.defaultState, -1)
+        }
+    }
+
+    departmentSelect.LightSelect.onHide = function () {
+
+        const activeElemData = this.state._activeElemData;
+
+        if(this.state._isModified){
+
+            LightSelect.replaceItems(this, this.state.defaultState, -1);
+
+            const isElemAlreadyExists = this.state.defaultState.find(element => element.value === activeElemData.value);
+            if(!isElemAlreadyExists){
+                LightSelect.appendItems(this, [activeElemData], this.state.defaultState.length)
+            } else {
+                LightSelect.setActiveOption(this, activeElemData.index);
+            }
         }
     }
 

@@ -199,44 +199,40 @@ body{
   }
 }
 
-@keyframes ldio-xalf9ctbgyn {
+@keyframes spinner-rolling {
   0% { transform: translate(-50%,-50%) rotate(0deg); }
   100% { transform: translate(-50%,-50%) rotate(360deg); }
 }
 
-.ldio-xalf9ctbgyn div {
-  position: absolute;
-  width: 32.339999999999996px;
-  height: 32.339999999999996px;
-  border: 2.94px solid #4f7abe;
-  border-top-color: transparent;
-  border-radius: 50%;
-}
-
-.ldio-xalf9ctbgyn div {
-  animation: ldio-xalf9ctbgyn 1s linear infinite;
-  top: 73.5px;
-  left: 73.5px
-}
-
-.loadingio-spinner-rolling-qeyqj7cntg {
+.spinner-rolling {
   width: 147px;
   height: 147px;
   display: inline-block;
   overflow: hidden;
   background: none;
-}
 
-.ldio-xalf9ctbgyn {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  transform: translateZ(0) scale(1);
-  backface-visibility: hidden;
-  transform-origin: 0 0; /* see note above */
-}
+  &__inner {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform: translateZ(0) scale(1);
+    backface-visibility: hidden;
+    transform-origin: 0 0; /* see note above */
 
-.ldio-xalf9ctbgyn div { box-sizing: content-box; }
+    div {
+      box-sizing: content-box;
+      position: absolute;
+      width: 32.339999999999996px;
+      height: 32.339999999999996px;
+      border: 2.94px solid #4f7abe;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spinner-rolling 1s linear infinite;
+      top: 73.5px;
+      left: 73.5px
+    }
+  }
+}
 
 .light-select-city,
 .light-select-department{

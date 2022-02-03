@@ -31,7 +31,7 @@ class LightSelect{
 
         // toggling dropdown visibility
         _title.addEventListener('click', () => {
-            if(instance.isOpened){
+            if(instance.state._isOpened){
                 LightSelect.hide(instance);
             } else {
                 LightSelect.show(instance);
@@ -62,6 +62,7 @@ class LightSelect{
 
         // closing a dropdown if click event detected elsewhere but not on lightSelect DOM-elements
         window.addEventListener('click', (e) => {
+            console.log(e.target);
             if(e.target.closest('.lightSelect') === _container){
                 e.stopPropagation();
             } else {
@@ -74,11 +75,12 @@ class LightSelect{
 
         let {source: {_select}, state: {defaultState}} = instance;
 
-        _select.querySelectorAll('option').forEach(option => {
+        _select.querySelectorAll('option').forEach((option, i) => {
             defaultState.push({
                 text: option.textContent,
                 value: option.value,
-                disabled: option.disabled
+                disabled: option.disabled,
+                index: i,
             })
         })
 
@@ -304,6 +306,25 @@ class LightSelect{
         const preloader = _container.querySelector('.lightSelect__preloader');
         preloader.classList.remove('lightSelect__preloader--active');
     }
+
+    static reset(instance){
+        const {source: {_select}, rendered: {_list}, state: {defaultState} } = instance;
+
+        _list.innerHTML = "";
+        _select.innerHTML = "";
+
+        defaultState.forEach(({value, text, disabled, index}) => {
+            _list.innerHTML += `<div class="lightSelect__list-item" data-disabled="${disabled}" data-value="${value}" data-index="${index}">${text}</div>`;
+
+            const option = document.createElement("option");
+            option.disabled = !!disabled;
+            option.value = value;
+            option.textContent = text;
+            _select.append(option);
+        })
+
+        LightSelect.setActiveOption(instance, 0);
+    }
 }
 
 function initLightSelect(elementSelector, options = {}) {
@@ -344,6 +365,8 @@ function throttleLimiter(timeout){
 
 document.addEventListener("DOMContentLoaded", function () {
 
+    const setThrottle = throttleLimiter(1000);
+
     // initializing selects
     initLightSelect('.light-select-city', {
         isSearch: true,
@@ -357,19 +380,17 @@ document.addEventListener("DOMContentLoaded", function () {
     const citySelect = document.querySelector('.light-select-city');
     const departmentSelect = document.querySelector('.light-select-department');
 
-    // getting cities list
-    const getCities = async function (carrierID, searchControl) {
+    const getData = async function({instance, url, bodyParams}){
         try {
-            console.log(carrierID, searchControl.value)
-
             const formData = new FormData();
-            formData.append('carrier_id', carrierID);
-            formData.append('name', searchControl.value);
 
-            LightSelect.preloaderShow(citySelect.LightSelect);
+            formData.append('name', instance.rendered._searchControl.value);
+            bodyParams.forEach(param => formData.append(param.name, param.value));
+
+            LightSelect.preloaderShow(instance);
             LightSelect.replaceItems(
-                citySelect.LightSelect,
-                // await getJSON('https://zinger1988.github.io/fakeDB/regions.json',
+                instance,
+                // await getJSON('url',
                 //     {
                 //         headers: {
                 //             "Content-Type": "multipart/form-data"
@@ -377,48 +398,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 //         method: "POST",
                 //         body: formData
                 //     })
-                await getJSON('https://zinger1988.github.io/fakeDB/regions.json')
-                    .then(({regions}) => regions.map(({id, name}) => ({ value: id, text: name }))),
+                await getJSON(url)
+                    .then(data => {
+                        return data.map(({id, name}) => ({ value: id, text: name }))
+                    }),
                 -1)
         } catch (e) {
             console.error(e.message)
         } finally {
-            LightSelect.preloaderRemove(citySelect.LightSelect);
+            LightSelect.preloaderRemove(instance);
         }
-    };
-
-    // getting post departments list
-    const getDepartments = async function (carrierID, searchControl, regionID) {
-        try {
-            console.log(carrierID, searchControl.value, regionID)
-
-            const formData = new FormData();
-            formData.append('carrier_id', carrierID);
-            formData.append('name', searchControl.value);
-            formData.append('region_id', regionID);
-
-            LightSelect.preloaderShow(departmentSelect.LightSelect);
-            LightSelect.replaceItems(
-                departmentSelect.LightSelect,
-                // await getJSON('https://zinger1988.github.io/fakeDB/departments.json',
-                //     {
-                //         headers: {
-                //              "Content-Type": "multipart/form-data"
-                //         },
-                //         method: 'POST',
-                //         body: formData
-                //     })
-                await getJSON('https://zinger1988.github.io/fakeDB/departments.json')
-                    .then(({stocks}) => stocks.map(({id, name}) => ({value: id, text: name, disabled: false}))),
-                -1);
-        } catch (e) {
-            console.error(e.message)
-        } finally {
-            LightSelect.preloaderRemove(departmentSelect.LightSelect);
-        }
-    };
-
-    const setThrottle = throttleLimiter(1000);
+    }
 
     citySelect.LightSelect.onOpen = function () {
         const bodyElem = document.querySelector('body');
@@ -435,11 +425,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
             LightSelect.replaceItems(this, this.state.defaultState, -1);
 
-            const isElemAlreadyExists = this.state.defaultState.find(element => element.value === activeElemData.value);
-            if(!isElemAlreadyExists){
+            const matchingElem = this.state.defaultState.find(element => element.value === activeElemData.value);
+
+            if(!matchingElem){
                 LightSelect.appendItems(this, [activeElemData], this.state.defaultState.length)
             } else {
-                LightSelect.setActiveOption(this, activeElemData.index);
+                LightSelect.setActiveOption(this, matchingElem.index);
             }
         }
     }
@@ -455,7 +446,13 @@ document.addEventListener("DOMContentLoaded", function () {
     citySelect.LightSelect.onSearchInput = async function () {
         if(this.rendered._searchControl.value.length >= 3){
 
-            await setThrottle(getCities.bind(null, 2, this.rendered._searchControl));
+            await setThrottle(getData.bind(null, {
+                instance: this,
+                url: 'https://zinger1988.github.io/fakeDB/regions.json',
+                bodyParams: [
+                    {name: 'carrier_id', value: 2}
+                ]
+            }));
 
         } else if(this.state._isModified){
             this.state._isModified = false;
@@ -466,7 +463,14 @@ document.addEventListener("DOMContentLoaded", function () {
     departmentSelect.LightSelect.onSearchInput = async function () {
         if(this.rendered._searchControl.value.length >= 3){
 
-            await setThrottle(getDepartments.bind(null, 2, this.rendered._searchControl, citySelect.LightSelect.state._activeElemData.value));
+            await setThrottle(getData.bind(null, {
+                instance: this,
+                url: 'https://zinger1988.github.io/fakeDB/departments.json',
+                bodyParams: [
+                    {name: 'carrier_id', value: 2},
+                    {name: 'region_id', value: citySelect.LightSelect.state._activeElemData.value}
+                ]
+            }));
 
         } else if(this.state._isModified){
             this.state._isModified = false;
